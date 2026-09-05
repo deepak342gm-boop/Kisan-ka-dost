@@ -19,14 +19,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: Setup Java 21
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
-
-      - name: Check Java version
-        run: java -version
+          java-version: '17'
 
       - name: Install ImageMagick
         run: |
@@ -44,12 +41,29 @@ jobs:
 
           npm init -y
 
-          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npm install @capacitor/core@6.2.1 @capacitor/cli@6.2.1 @capacitor/android@6.2.1
 
           npx cap init "FarmLink AI" "com.farmlink.ai" --web-dir=www
 
           npx cap add android
 
+      - name: Fix Kotlin dependencies
+        run: |
+          cat >> android/build.gradle <<'EOF'
+
+          allprojects {
+              configurations.all {
+                  resolutionStrategy {
+                      force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+                      force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
+                      force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+                  }
+              }
+          }
+          EOF
+
+      - name: Copy web files
+        run: |
           npx cap copy android
 
       - name: Set app icon
@@ -70,6 +84,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
+          ./gradlew clean
           ./gradlew assembleDebug
 
       - name: Upload APK
